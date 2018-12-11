@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -54,6 +55,9 @@ namespace JustDoMyPdf
 
             // Bind properties
             var mappedHtml = BindProperties(html, properties);
+            var htmlBytes = Encoding.UTF8.GetBytes(mappedHtml);
+            
+            File.WriteAllBytes(htmlFileName, htmlBytes);
 
             // Html to pdf
             await MakePdf(htmlFileName, pdfFileName);
@@ -64,10 +68,13 @@ namespace JustDoMyPdf
              */
             
             // Delete temp files
-            DeleteTempFiles(fileName);
 
             // Return response
-            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(pdfBytes)
+            };
+
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
 
             return response;
@@ -110,12 +117,14 @@ namespace JustDoMyPdf
 
         public static Task MakePdf(string filePath, string pdfFileName)
         {
+            var arguments = $"rasterize.js {filePath} {pdfFileName} format=A4 orientation=portrait margin=1cm";
+
             var process = new Process
             {
                 StartInfo =
                 {
                     FileName = "phantomjs",
-                    Arguments = $"rasterize.js {filePath} {pdfFileName} format=A4 orientation=portrait margin=1cm",
+                    Arguments = arguments,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
@@ -135,9 +144,13 @@ namespace JustDoMyPdf
 
         public static string BindProperties(string html, object properties)
         {
-            var pure = Regex.Replace(html, @"</?span( [^>]*|/)?>", String.Empty);
+            var htmlNoSpans = Regex.Replace(html, @"</?span( [^>]*|/)?>", String.Empty);
+            var htmlNoScript = Regex.Replace(htmlNoSpans, @"</?script( [^>]*|/)?>", String.Empty);
+            var junkScripts = Regex.Replace(htmlNoScript, "</style>(.*)<title>", String.Empty);
 
-            var template = Template.Parse(pure);
+            var template = Template.Parse(junkScripts);
+            var templateErrors = template.Messages;
+
             var result = template.Render(properties);
 
             return result;
@@ -156,4 +169,5 @@ namespace JustDoMyPdf
             return tcs.Task;
         }
     }
+
 }

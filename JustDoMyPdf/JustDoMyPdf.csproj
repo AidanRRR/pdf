@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <AzureFunctionsVersion>v2</AzureFunctionsVersion>
+    <AzureFunctionsVersion>v1</AzureFunctionsVersion>
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
   <ItemGroup>
@@ -27,8 +27,6 @@
     <None Remove="data\pdf2htmlEX.js.in" />
     <None Remove="data\pdf2htmlEX.min.js" />
     <None Remove="pdf2htmlEX.exe" />
-    <None Remove="phantomjs.exe" />
-    <None Remove="rasterize.js" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="data\.DS_Store">
@@ -82,12 +80,6 @@
     <EmbeddedResource Include="pdf2htmlEX.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="phantomjs.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="rasterize.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DinkToPdf" Version="1.0.8" />
@@ -113,6 +105,12 @@
     <None Update="local.settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <None Update="phantomjs.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="rasterize.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>
