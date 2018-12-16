@@ -15,6 +15,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Scriban;
+using Scriban.Parsing;
 using IPdfConverter = DinkToPdf.Contracts.IConverter;
 
 namespace JustDoMyPdf
@@ -63,11 +64,9 @@ namespace JustDoMyPdf
             await MakePdf(htmlFileName, pdfFileName);
 
             var pdfBytes = File.ReadAllBytes($"{pdfFileName}");
-            /*
-             * C:\Users\Aidan\Desktop\temp\phantom\html2pdf.it\bin>phantomjs rasterize.js TemplateTest.html Test.pdf format=A4 orientation=portrait margin=1cm
-             */
             
             // Delete temp files
+            DeleteTempFiles(fileName);
 
             // Return response
             var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -144,12 +143,13 @@ namespace JustDoMyPdf
 
         public static string BindProperties(string html, object properties)
         {
-            var htmlNoSpans = Regex.Replace(html, @"</?span( [^>]*|/)?>", String.Empty);
-            var htmlNoScript = Regex.Replace(htmlNoSpans, @"</?script( [^>]*|/)?>", String.Empty);
-            var junkScripts = Regex.Replace(htmlNoScript, "</style>(.*)<title>", String.Empty);
+            var htmlNoSpans = Regex.Replace(html, @"<span class=""_ _0""></span>", String.Empty);
+            var junkScripts = Regex.Replace(htmlNoSpans, "<script>(.*)</script>",String.Empty, RegexOptions.Singleline);
 
-            var template = Template.Parse(junkScripts);
-            var templateErrors = template.Messages;
+            var template = Template.Parse(junkScripts, parserOptions:new ParserOptions()
+            {
+                
+            });
 
             var result = template.Render(properties);
 
