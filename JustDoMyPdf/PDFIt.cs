@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Dynamic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -9,13 +12,17 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Http;
 using DinkToPdf;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Scriban;
 using Scriban.Parsing;
+using Scriban.Runtime;
 using IPdfConverter = DinkToPdf.Contracts.IConverter;
 
 namespace JustDoMyPdf
@@ -27,20 +34,18 @@ namespace JustDoMyPdf
         [FunctionName("PDFIt")]
         public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req, TraceWriter log)
         {
-            // Setup
-            var templateUrl = "http://www.rypens.be/upload/files/Factuur_template.pdf";
-            var properties = new
+            var requestContent = await req.Content.ReadAsStringAsync();
+            dynamic requestJson = JObject.Parse(requestContent);
+
+            var properties = new Dictionary<string, string>();
+            foreach (var jToken in (JToken) requestJson)
             {
-                klantnaam = "Belfius",
-                straat = "Kandijstraat",
-                nr = "6",
-                postcode = "2650",
-                gemeente = "Edegem",
-                btwnr = "156.65.26.612"
-            };
+                var prop = (JProperty) jToken;
+                properties.Add(prop.Name, prop.Value.Value<string>());
+            }
 
             // Download template
-            var template = await DownloadTemplate(templateUrl);
+            var template = await DownloadTemplate(properties["templateUrl"]);
 
             // Write temp pdf
             var fileName = Path.GetRandomFileName();
@@ -141,15 +146,12 @@ namespace JustDoMyPdf
             File.Delete($"{filePath}.pdf");
         }
 
-        public static string BindProperties(string html, object properties)
+        public static string BindProperties(string html, IDictionary<string, string> properties)
         {
             var htmlNoSpans = Regex.Replace(html, @"<span class=""_ _0""></span>", String.Empty);
             var junkScripts = Regex.Replace(htmlNoSpans, "<script>(.*)</script>",String.Empty, RegexOptions.Singleline);
 
-            var template = Template.Parse(junkScripts, parserOptions:new ParserOptions()
-            {
-                
-            });
+            var template = Template.Parse(junkScripts);
 
             var result = template.Render(properties);
 
